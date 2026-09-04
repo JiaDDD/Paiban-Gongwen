@@ -1,6 +1,6 @@
 ---
 name: jiadong-gongwenpaiban
-description: 由 JiaD 创建的公文排版 Skill。粘贴 AI 回复或网页链接，或上传 Word、TXT、Markdown，即可自动生成公文规格的 Word 与 PDF，享受吧！选中本 Skill 并带来源后，即使用户不再说话也直接排版。用于公文排版、帮我进行公文排版、加东公文、JiaD公文、把这段排成公文、按这个链接排版。
+description: 由 JiaD 创建的公文排版 Skill。粘贴 AI 回复或网页链接，或上传 Word、TXT、Markdown，即可自动生成公文规格的 Word 与 PDF，享受吧！
 metadata:
   type: workflow
   version: "1.1"
