@@ -1,6 +1,12 @@
-# jiadong-gongwenpaiban
+# Paiban-Gongwen
 
 作者：JiaD
+
+本仓库含两个 Skill：根目录为公文排版（`jiadong-gongwenpaiban` / `paiban-gongwen`）；`jiadong-paiban-prompt/` 为中间稿格式约束。
+
+---
+
+# jiadong-gongwenpaiban
 
 由 JiaD 创建的公文排版 Skill。粘贴 AI 回复或网页链接，或上传 Word、TXT、Markdown，即可自动生成公文规格的 Word 与 PDF，享受吧！
 
@@ -32,7 +38,7 @@
 2. 在对话里选中本 Skill，发送文本、链接或文件。
 3. 也可以直接说：公文排版、帮我进行公文排版、加东公文、JiaD公文、把这段排成公文、按这个链接排版。
 
-若要先让其他模型按可识别结构写作，把 [references/upstream-prompt.md](references/upstream-prompt.md) 整段发给对方。中间稿约定为 `#`～`#####`，并配 `一、` `（一）` `1.` `（1）`。没有这套标记的散文，仍按文意排版。
+若要先让其他模型按可识别结构写作，使用 [jiadong-paiban-prompt](jiadong-paiban-prompt/) ，或把 [references/upstream-prompt.md](references/upstream-prompt.md) 整段发给对方。中间稿约定为 `#`～`#####`，并配 `一、` `（一）` `1.` `（1）`。没有这套标记的散文，仍按文意排版。
 
 ## 规格摘要
 
@@ -54,6 +60,18 @@ python3 scripts/format_gongwen.py create --input source.md --output out.docx --p
 ```
 
 依赖 `python-docx`。导出 PDF 需要本机 `soffice`（LibreOffice）。无方正字体时，屏幕显示会回退，文件里仍写入官方字体名。
+
+---
+
+# jiadong-paiban-prompt
+
+公文中间稿格式 Skill。只锁结构，不锁内容，不排 Word 与 PDF。选中后只要给题目或素材即按中间稿直接成稿。
+
+安装：将 [jiadong-paiban-prompt/](jiadong-paiban-prompt/) 整目录放到 `~/.grok/skills/jiadong-paiban-prompt/`。
+
+中间稿为 ATX `#`～`#####`，配 `一、` `（一）` `1.` `（1）`，可选 `[落款]`。只要生成用 Prompt 时，原样返回 [jiadong-paiban-prompt/references/draft-format.md](jiadong-paiban-prompt/references/draft-format.md)。
+
+排版请把中间稿交给根目录的排版 Skill。
 
 ## 许可
 
