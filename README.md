@@ -1,34 +1,22 @@
 # Paiban-Gongwen
 
-作者：JiaD
-
-一个 Skill 一个文件夹。
-
-```text
-Paiban-Gongwen/
-├── jiadong-gongwenpaiban/     排版，输出 Word 与 PDF
-└── jiadong-paiban-prompt/     中间稿格式，只锁结构
-```
-
-## Skill 功能
+由 JiaD 创建的 Skill
 
 ### jiadong-paiban-prompt
 
-公文中间稿格式。选中后只要给题目或素材，不加触发语也按中间稿直接成稿。
+限定公文中间稿格式：
 
 - 输出 ATX `#` 至 `#####`，配公文序号 `一、` `（一）` `1.` `（1）`，可选 `[落款]`
 - 只锁结构，不改题目、立场、措辞或事实
-- 不排 Word 与 PDF
 - 只要生成用 Prompt 时，原样返回仓库里的围栏全文
 
 ### jiadong-gongwenpaiban
 
-公文排版。选中并附上来源后，不再说话也直接排版。
+选中并附上来源后自动进行公文排版。
 
 - 可输入：粘贴的 AI 回复、网页链接、Word、TXT、Markdown
 - 同时交出公文规格的 Word 与 PDF
 - 不改写正文；中间稿优先，散文则按文意恢复结构
-- 链接抓不到正文时停下来要原文，不凭标题猜结构
 
 建议先用 `jiadong-paiban-prompt` 写稿，再把中间稿交给 `jiadong-gongwenpaiban` 排版。
 
