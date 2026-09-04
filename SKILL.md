@@ -1,9 +1,9 @@
 ---
 name: paiban-gongwen
-description: Reformat an uploaded Word or Markdown file into a fixed Chinese official-document layout that matches the user WPS screenshot. Use when the user says 公文排版, 帮我进行公文排版, paiban-gongwen, or asks to apply this exact official-document preset to a .docx or Markdown file.
+description: Reformat pasted AI answers, http(s) links, Word, or Markdown into one frozen Chinese official-document layout. Use when the user says 公文排版, 帮我进行公文排版, paiban-gongwen, 把这段排成公文, 按这个链接排版, or asks for the upstream generation prompt.
 metadata:
   type: workflow
-  version: "1.0"
+  version: "1.1"
   spec: user-wps-screenshot-2026-09-04
 ---
 
@@ -15,25 +15,28 @@ Read [references/format-spec.md](references/format-spec.md) before changing any 
 
 ## Scope
 
-- Input: user-uploaded `.docx` or Markdown/plain text.
+- Input: pasted AI answers, `http(s)` URLs, `.docx`, Markdown, or plain text.
 - Output: a new `.docx` and a matching `.pdf` with the same stem. Deliver both.
+- Canonical intermediate form is ATX `#`–`#####` plus official numbering. Prefer that form. Fall back to meaning when the source is prose.
 - Refuse `.doc`, `.docm`, encrypted files, and files with unresolved tracked changes or comments. Ask for a clean `.docx` or paste the text.
-- Never overwrite the source file. Write `<stem>_公文排版.docx`. If that name exists, append `-2`, `-3`, and so on.
+- Never overwrite the source file. Write `<stem>_公文排版.docx`. If no stem exists, use the title or `公文排版.docx`. If that name exists, append `-2`, `-3`, and so on.
 - Do not invent titles, issuing units, dates, addressees, or body sentences. Preserve wording. Allowed edits are whitespace normalization and, when a short line functions as a heading but has no prefix, inserting the official `一、` `（一）` `1.` `（1）` mark for that level.
 - Do not persist per-document overrides as a new profile. This skill has one spec.
+- If the user asks for the generation prompt, return [references/upstream-prompt.md](references/upstream-prompt.md) verbatim. Do not invent a second prompt.
 
 ## Route
 
-- Markdown, `.txt`, or pasted text → `scripts/format_gongwen.py create --input <file> --output <out.docx>`
-- Existing `.docx` → `scripts/format_gongwen.py format --input <file> --output <out.docx>` after showing the plan
-- If the user only says `公文排版` and no file is present, ask for the Word, Markdown, or text source. Do not fabricate a sample document.
+- Pasted text or Markdown (including an AI answer) → normalize to the intermediate form if needed → `scripts/format_gongwen.py create --input <file> --output <out.docx>`
+- `http(s)` URL → fetch main text. If fetch fails or the page has no usable body, stop and ask the user to paste the text. Do not guess structure from the title alone.
+- Existing `.docx` → `scripts/format_gongwen.py format --input <file> --output <out.docx>`
+- If the user only says `公文排版` and no source is present, ask for text, a link, Word, or Markdown. Do not fabricate a sample document.
 - Read [references/structure-recognition.md](references/structure-recognition.md) before classifying.
 
 ## Required workflow
 
 1. Read [references/format-spec.md](references/format-spec.md).
 2. Confirm input type and output path. State that fonts are written as named East-Asian fonts so they resolve on a Chinese WPS/Word machine even if this sandbox lacks 方正/仿宋/楷体.
-3. Read the whole source for meaning. Then classify with [references/structure-recognition.md](references/structure-recognition.md). Reliable author marks win. Broken form yields to meaning. Map every block onto 主标题 / 一级 / 二级 / 三级 / 四级 / 正文 / 落款 only.
+3. Detect input type. For a URL, fetch the article body first. Classify with [references/structure-recognition.md](references/structure-recognition.md). Intermediate ATX plus official numbering wins when present. Otherwise recover structure from meaning. Map every block onto 主标题 / 一级 / 二级 / 三级 / 四级 / 正文 / 落款 only. Do not expand, shrink, or polish the wording.
 4. If a short line functions as a heading and lacks an official prefix, add `一、` `（一）` `1.` or `（1）` for the chosen level and restart child counters after a parent heading. Write the normalized blocks if needed, then run `scripts/format_gongwen.py`. Print `role<TAB>text`. If several roles are uncertain, prefer 正文 or show the plan; do not stop for confirmation on an otherwise clear document.
 5. If `python-docx` is missing, stop and report it. Do not install packages silently.
 6. After the `.docx` is written, export PDF with the same stem via `scripts/format_gongwen.py` (LibreOffice `soffice --headless --convert-to pdf`). If conversion fails, still deliver the Word file and report the PDF error. A sandbox PDF may substitute fonts; say so. Report both paths and the page metrics.
