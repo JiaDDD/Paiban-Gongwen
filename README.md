@@ -1,8 +1,12 @@
-# paiban-gongwen
+# jiadong-gongwenpaiban
+
+作者：JiaD
 
 按固定中国公文规格，将 Word、Markdown 或纯文本排成 `.docx`，并导出同名 `.pdf`。
 
-面向 Grok / Agent Skills：把本目录放到 `~/.grok/skills/paiban-gongwen/`（或产品要求的 skills 目录）。触发语包括「公文排版」「帮我进行公文排版」。
+面向 Grok / Agent Skills：把本目录放到 `~/.grok/skills/jiadong-gongwenpaiban/`（或产品要求的 skills 目录）。触发语包括「公文排版」「帮我进行公文排版」「加东公文」「JiaD公文」「把这段排成公文」「按这个链接排版」。
+
+生成内容前可把 `references/upstream-prompt.md` 整段发给上游模型。中间稿为 `#`～`#####` 加公文编号。链接抓取失败则停止并请改贴文本。散文来稿仍按文意排版。
 
 ## 规格摘要
 
