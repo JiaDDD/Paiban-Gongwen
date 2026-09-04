@@ -10,6 +10,28 @@ Paiban-Gongwen/
 └── jiadong-paiban-prompt/     中间稿格式，只锁结构
 ```
 
+## Skill 功能
+
+### jiadong-paiban-prompt
+
+公文中间稿格式。选中后只要给题目或素材，不加触发语也按中间稿直接成稿。
+
+- 输出 ATX `#` 至 `#####`，配公文序号 `一、` `（一）` `1.` `（1）`，可选 `[落款]`
+- 只锁结构，不改题目、立场、措辞或事实
+- 不排 Word 与 PDF
+- 只要生成用 Prompt 时，原样返回仓库里的围栏全文
+
+### jiadong-gongwenpaiban
+
+公文排版。选中并附上来源后，不再说话也直接排版。
+
+- 可输入：粘贴的 AI 回复、网页链接、Word、TXT、Markdown
+- 同时交出公文规格的 Word 与 PDF
+- 不改写正文；中间稿优先，散文则按文意恢复结构
+- 链接抓不到正文时停下来要原文，不凭标题猜结构
+
+建议先用 `jiadong-paiban-prompt` 写稿，再把中间稿交给 `jiadong-gongwenpaiban` 排版。
+
 ## 用一句话让 AI 安装
 
 把下面整段发给当前正在用的 AI。由它查明本产品的用户 Skill 目录并完成复制，不要手写路径。
