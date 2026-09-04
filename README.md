@@ -12,42 +12,32 @@ Paiban-Gongwen/
 
 ## 用一句话让 AI 安装
 
-把下面整段发给 Grok 或任何能读 GitHub、能写本地 skills 目录的 AI。不用再解释。
+把下面整段发给当前正在用的 AI。由它查明本产品的用户 Skill 目录并完成复制，不要手写路径。
 
 ### 两个都装
 
 ```text
-请从 GitHub 仓库 https://github.com/JiaDDD/Paiban-Gongwen 安装两个 Skill。
-把 jiadong-gongwenpaiban/ 整夹复制到 ~/.grok/skills/jiadong-gongwenpaiban/，
-把 jiadong-paiban-prompt/ 整夹复制到 ~/.grok/skills/jiadong-paiban-prompt/。
-每个目录里必须有 SKILL.md，目录名与 SKILL.md 里的 name 一致。
-若目标已存在则覆盖更新。装完后列出落盘路径。
+请从 GitHub 仓库 https://github.com/JiaDDD/Paiban-Gongwen 安装两个 Skill：jiadong-gongwenpaiban 与 jiadong-paiban-prompt。
+先查明本产品用户 Skill 的落盘目录，再把仓库里同名文件夹整夹复制过去。
+每个目录必须含 SKILL.md，目录名必须与 SKILL.md 的 name 一致。
+目标已存在则覆盖更新。装完列出实际路径。
 ```
 
 ### 只装排版
 
 ```text
 请从 https://github.com/JiaDDD/Paiban-Gongwen 安装 Skill jiadong-gongwenpaiban。
-把仓库里的 jiadong-gongwenpaiban/ 整夹复制到 ~/.grok/skills/jiadong-gongwenpaiban/，覆盖已有文件。
+先查明本产品用户 Skill 目录，再把仓库里的 jiadong-gongwenpaiban/ 整夹复制过去，已存在则覆盖。
 ```
 
 ### 只装中间稿
 
 ```text
 请从 https://github.com/JiaDDD/Paiban-Gongwen 安装 Skill jiadong-paiban-prompt。
-把仓库里的 jiadong-paiban-prompt/ 整夹复制到 ~/.grok/skills/jiadong-paiban-prompt/，覆盖已有文件。
+先查明本产品用户 Skill 目录，再把仓库里的 jiadong-paiban-prompt/ 整夹复制过去，已存在则覆盖。
 ```
 
-若当前产品的用户 Skill 目录不是 `~/.grok/skills/`，把路径改成该产品要求的 skills 目录即可。Grok 工作区常见为 `/home/workdir/.grok/skills/`。
-
-装好后开新对话，在输入框选中对应 Skill。
-
-## 用 GitHub CLI 安装（可选）
-
-```bash
-gh skill install JiaDDD/Paiban-Gongwen jiadong-gongwenpaiban --agent grok
-gh skill install JiaDDD/Paiban-Gongwen jiadong-paiban-prompt --agent grok
-```
+装好后开新对话，选中对应 Skill。
 
 ## 装好之后
 
