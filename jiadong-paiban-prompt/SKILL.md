@@ -1,6 +1,6 @@
 ---
 name: jiadong-paiban-prompt
-description: 选中本 Skill 后，即使用户不加触发语，只要给出题目或素材，即按 ATX # 至 ##### 加 一、 （一） 1. （1） 及可选[落款]直接成稿。只锁结构，不锁内容，不排 Word 与 PDF。用于中间稿约束、生成用Prompt、公文中间稿格式、按中间稿写。
+description: 由 JiaD 创建，限定生成内容的格式，方便进行公文排版。
 metadata:
   type: workflow
   version: "1.2"
