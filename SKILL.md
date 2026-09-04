@@ -1,6 +1,6 @@
 ---
-name: paiban-gongwen
-description: Reformat pasted AI answers, http(s) links, Word, or Markdown into one frozen Chinese official-document layout. Use when the user says 公文排版, 帮我进行公文排版, paiban-gongwen, 把这段排成公文, 按这个链接排版, or asks for the upstream generation prompt.
+name: jiadong-gongwenpaiban
+description: 由 JiaD 创建的公文排版 Skill。粘贴 AI 回复或网页链接，或上传 Word、TXT、Markdown，即可自动生成公文规格的 Word 与 PDF，享受吧！选中本 Skill 并带来源后，即使用户不再说话也直接排版。用于公文排版、帮我进行公文排版、加东公文、JiaD公文、把这段排成公文、按这个链接排版。
 metadata:
   type: workflow
   version: "1.1"
@@ -29,13 +29,14 @@ Read [references/format-spec.md](references/format-spec.md) before changing any 
 - Pasted text or Markdown (including an AI answer) → normalize to the intermediate form if needed → `scripts/format_gongwen.py create --input <file> --output <out.docx>`
 - `http(s)` URL → fetch main text. If fetch fails or the page has no usable body, stop and ask the user to paste the text. Do not guess structure from the title alone.
 - Existing `.docx` → `scripts/format_gongwen.py format --input <file> --output <out.docx>`
-- If the user only says `公文排版` and no source is present, ask for text, a link, Word, or Markdown. Do not fabricate a sample document.
+- If this skill is selected and the message contains pasted text, a URL, or an uploaded `.docx` / `.txt` / Markdown file, start typesetting immediately. Extra words such as 公文排版 are optional. Do not ask whether to format.
+- If this skill is selected but no source is present, ask for text, a link, Word, TXT, or Markdown. Do not fabricate a sample document.
 - Read [references/structure-recognition.md](references/structure-recognition.md) before classifying.
 
 ## Required workflow
 
 1. Read [references/format-spec.md](references/format-spec.md).
-2. Confirm input type and output path. State that fonts are written as named East-Asian fonts so they resolve on a Chinese WPS/Word machine even if this sandbox lacks 方正/仿宋/楷体.
+2. If a source is already in the message or attachments, skip confirmation chat and go straight to classification and output. Mention fonts only in the short completion note. State that fonts are written as named East-Asian fonts so they resolve on a Chinese WPS/Word machine even if this sandbox lacks 方正/仿宋/楷体.
 3. Detect input type. For a URL, fetch the article body first. Classify with [references/structure-recognition.md](references/structure-recognition.md). Intermediate ATX plus official numbering wins when present. Otherwise recover structure from meaning. Map every block onto 主标题 / 一级 / 二级 / 三级 / 四级 / 正文 / 落款 only. Do not expand, shrink, or polish the wording.
 4. If a short line functions as a heading and lacks an official prefix, add `一、` `（一）` `1.` or `（1）` for the chosen level and restart child counters after a parent heading. Write the normalized blocks if needed, then run `scripts/format_gongwen.py`. Print `role<TAB>text`. If several roles are uncertain, prefer 正文 or show the plan; do not stop for confirmation on an otherwise clear document.
 5. If `python-docx` is missing, stop and report it. Do not install packages silently.
