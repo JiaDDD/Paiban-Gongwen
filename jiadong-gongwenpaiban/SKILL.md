@@ -3,7 +3,7 @@ name: jiadong-gongwenpaiban
 description: 由 JiaD 创建的公文排版 Skill。粘贴 AI 回复或网页链接，或上传 Word、TXT、Markdown，即可自动生成公文规格的 Word，享受吧！
 metadata:
   type: workflow
-  version: "1.2"
+  version: "1.3"
   spec: user-wps-screenshot-2026-09-04
 ---
 
@@ -40,7 +40,7 @@ Read [references/format-spec.md](references/format-spec.md) before changing any 
 3. Detect input type. For a URL, fetch the article body first. Classify with [references/structure-recognition.md](references/structure-recognition.md). Intermediate ATX plus official numbering wins when present. Otherwise recover structure from meaning. Map every block onto 主标题 / 一级 / 二级 / 三级 / 四级 / 正文 / 落款 only. Do not expand, shrink, or polish the wording.
 4. If a short line functions as a heading and lacks an official prefix, add `一、` `（一）` `1.` or `（1）` for the chosen level and restart child counters after a parent heading. Write the normalized blocks if needed, then run `scripts/format_gongwen.py`. Print `role<TAB>text`. If several roles are uncertain, prefer 正文 or show the plan; do not stop for confirmation on an otherwise clear document.
 5. If `python-docx` is missing, stop and report it. Do not install packages silently.
-6. After the `.docx` is written, stop. Do not call LibreOffice, `soffice`, or any PDF converter. Deliver only the Word path. Do not report PDF metrics.
+6. After the `.docx` is written, run `scripts/validate_gongwen.py --input <out.docx>`. Print `VALIDATE OK` or the `ERROR` lines. Do not call LibreOffice, `soffice`, or any PDF converter. Deliver only the Word path. If validation fails, still keep the Word file, report the structural errors, and do not claim the spec is fully applied.
 
 ## Layout rules the script must keep
 
@@ -55,10 +55,11 @@ Read [references/format-spec.md](references/format-spec.md) before changing any 
 - 四级标题 方正仿宋_GB18030 3号 (16 pt), prefix `（1）`, first-line indent 2 characters.
 - 正文 方正仿宋_GB18030 3号 (16 pt), first-line indent of 2 characters.
 - Fixed line pitch 28.9 pt on every managed paragraph so 22 lines fit the printable height. Do not set the body font size to 28.9 pt.
-- 落款 right-aligned block after exactly one blank body-styled paragraph. Do not invent a unit or date.
+- 落款 after exactly one blank body-styled paragraph. Place the block in the right-side region by a shared left indent estimated from the longest signature line. Do not invent a unit or date. Do not use a naive full-paragraph right alignment as the only layout.
 - Text color black. Disable widow/orphan control on managed paragraphs.
 - Latin letters and digits in body, title and heading runs use Times New Roman. East-Asian text uses the role font. Page-number digits stay 宋体. Do not force a 28-character grid onto Latin runs.
 - Keep 指定行和字符网格 and first-line indent via firstLineChars=200 for 正文 and 一级至四级标题. The main title stays centered with no first-line indent.
+- Use named paragraph styles `GW 主标题` / `GW 一级` / `GW 二级` / `GW 三级` / `GW 四级` / `GW 正文` / `GW 落款`. Strip theme colors when forcing black. Page-number fields use `PAGE \\* CHARFORMAT` with 宋体 in every font slot.
 
 ## Fallbacks
 
@@ -74,4 +75,4 @@ Write the official font names into the document. Also set East-Asian fallback hi
 
 ## After output
 
-Deliver the `.docx` only. Do not attach or render a PDF. Do not claim visual proof unless a renderer produced page images. Report structural application of the spec, not printed appearance. If asked how to obtain a PDF, say to open the Word file in WPS or Word and export there so the named official fonts can embed.
+Deliver the `.docx` only. Do not attach or render a PDF. Report the validator result. A passing validator means the named fonts, 28.9 pt line pitch, grid, margins, page-number field, and paragraph roles were written into OOXML; it is not printed appearance. If asked how to obtain a PDF, say to open the Word file in WPS or Word and export there so the named official fonts can embed.
