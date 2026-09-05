@@ -3,7 +3,7 @@ name: jiadong-gongwenpaiban
 description: 由 JiaD 创建的公文排版 Skill。粘贴 AI 回复或网页链接，或上传 Word、TXT、Markdown，即可自动生成公文规格的 Word，享受吧！
 metadata:
   type: workflow
-  version: "1.3"
+  version: "1.4"
   spec: user-wps-screenshot-2026-09-04
 ---
 
@@ -47,7 +47,7 @@ Read [references/format-spec.md](references/format-spec.md) before changing any 
 - A4 portrait. Margins — top 37 mm, bottom 35 mm, left 28 mm, right 26 mm.
 - Document grid — 指定行和字符网格, 28 characters per line, 22 lines per page.
 - Header distance from edge 1.50 cm. Footer distance from edge 2.50 cm.
-- Page numbers only, 宋体 4号, form `— n —`, duplex style 双面打印1, footer on the outer side (odd pages right, even pages left). No other header or footer text.
+- Page numbers only, 宋体 4号, form `— n —`, centered in the footer on odd and even pages. No other header or footer text.
 - 主标题 centered, 方正小标宋简体, 2号 (22 pt). After the title insert one blank body-pitched line.
 - 一级标题 方正黑体简体 3号 (16 pt), prefix `一、`, first-line indent 2 characters.
 - 二级标题 楷体_GB2312 3号 (16 pt), prefix `（一）`, first-line indent 2 characters.
