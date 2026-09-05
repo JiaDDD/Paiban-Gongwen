@@ -4,15 +4,18 @@
 from __future__ import annotations
 
 import argparse
+import math
 import re
 import sys
+import unicodedata
 from pathlib import Path
 
 from docx import Document
+from docx.enum.style import WD_STYLE_TYPE
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_LINE_SPACING
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
-from docx.shared import Cm, Emu, Mm, Pt, Twips
+from docx.shared import Cm, Mm, Pt, RGBColor
 
 PT_TITLE = 22.0
 PT_BODY = 16.0
@@ -38,6 +41,27 @@ LINK = re.compile(r"\[([^\]]+)\]\([^)]+\)")
 MD_WRAP = re.compile(r"(\*\*|__|\*|_)(.*?)\1")
 LATIN_CHUNK = re.compile(r"[A-Za-z0-9][A-Za-z0-9+\-._/%]*")
 LIST_ITEM = re.compile(r"^(?:\d+\.|[-*+]|（[一二三四五六七八九十百\d]+）|\([0-9]+\))\s+")
+DATE_RE = re.compile(r"^\d{4}年\d{1,2}月\d{1,2}日(?:\s*印发)?[。．.]?$")
+OFFICE_RE = re.compile(r"(?:单位|办公室|委员会|人民政府|政府|局|厅|部|院|中心|公司|集团|学校|协会|研究院)$")
+
+ROLE_STYLE = {
+    "主标题": "GW 主标题",
+    "一级": "GW 一级",
+    "二级": "GW 二级",
+    "三级": "GW 三级",
+    "四级": "GW 四级",
+    "正文": "GW 正文",
+    "落款": "GW 落款",
+}
+ROLE_FONT = {
+    "主标题": FONT_TITLE,
+    "一级": FONT_H1,
+    "二级": FONT_H2,
+    "三级": FONT_BODY,
+    "四级": FONT_BODY,
+    "正文": FONT_BODY,
+    "落款": FONT_BODY,
+}
 
 
 def cn_num(n: int) -> str:
@@ -162,17 +186,23 @@ def parse_markdown(text: str) -> list[tuple[str, str]]:
     return blocks
 
 
-def set_run_fonts(run, east_asia: str, latin: str, size_pt: float, bold: bool = False) -> None:
-    run.bold = bold
-    run.italic = False
-    run.font.size = Pt(size_pt)
-    run.font.color.rgb = None
+def set_run_black(run) -> None:
+    run.font.color.rgb = RGBColor(0, 0, 0)
     r_pr = run._element.get_or_add_rPr()
     color = r_pr.find(qn("w:color"))
     if color is None:
         color = OxmlElement("w:color")
         r_pr.append(color)
     color.set(qn("w:val"), "000000")
+    for attr in ("themeColor", "themeTint", "themeShade"):
+        color.attrib.pop(qn(f"w:{attr}"), None)
+
+
+def set_run_fonts(run, east_asia: str, latin: str, size_pt: float, bold: bool = False) -> None:
+    run.bold = bold
+    run.italic = False
+    run.font.size = Pt(size_pt)
+    r_pr = run._element.get_or_add_rPr()
     r_fonts = r_pr.find(qn("w:rFonts"))
     if r_fonts is None:
         r_fonts = OxmlElement("w:rFonts")
@@ -187,33 +217,28 @@ def set_run_fonts(run, east_asia: str, latin: str, size_pt: float, bold: bool = 
             node = OxmlElement(tag)
             r_pr.append(node)
         node.set(qn("w:val"), str(int(round(size_pt * 2))))
+    set_run_black(run)
 
 
-def add_mixed_runs(paragraph, text: str, east_asia: str, size_pt: float, bold: bool = False) -> None:
+def add_mixed_runs(paragraph, text: str, east_asia: str, size_pt: float) -> None:
     idx = 0
     for match in LATIN_CHUNK.finditer(text):
         if match.start() > idx:
             run = paragraph.add_run(text[idx : match.start()])
-            set_run_fonts(run, east_asia, FONT_LATIN, size_pt, bold)
+            set_run_fonts(run, east_asia, FONT_LATIN, size_pt)
         run = paragraph.add_run(match.group(0))
-        set_run_fonts(run, east_asia, FONT_LATIN, size_pt, bold)
+        set_run_fonts(run, east_asia, FONT_LATIN, size_pt)
         idx = match.end()
     if idx < len(text):
         run = paragraph.add_run(text[idx:])
-        set_run_fonts(run, east_asia, FONT_LATIN, size_pt, bold)
+        set_run_fonts(run, east_asia, FONT_LATIN, size_pt)
     if not text:
         run = paragraph.add_run("")
-        set_run_fonts(run, east_asia, FONT_LATIN, size_pt, bold)
+        set_run_fonts(run, east_asia, FONT_LATIN, size_pt)
 
 
-def set_paragraph_format(paragraph, role: str) -> None:
-    pf = paragraph.paragraph_format
-    pf.space_before = Pt(0)
-    pf.space_after = Pt(0)
-    pf.line_spacing_rule = WD_LINE_SPACING.EXACTLY
-    pf.line_spacing = Pt(PT_LINE)
-    pf.widow_control = False
-
+def set_widow_off(paragraph) -> None:
+    paragraph.paragraph_format.widow_control = False
     p_pr = paragraph._p.get_or_add_pPr()
     widow = p_pr.find(qn("w:widowControl"))
     if widow is None:
@@ -221,6 +246,16 @@ def set_paragraph_format(paragraph, role: str) -> None:
         p_pr.append(widow)
     widow.set(qn("w:val"), "0")
 
+
+def set_paragraph_geometry(paragraph, role: str, signature_left: int = 0) -> None:
+    pf = paragraph.paragraph_format
+    pf.space_before = Pt(0)
+    pf.space_after = Pt(0)
+    pf.line_spacing_rule = WD_LINE_SPACING.EXACTLY
+    pf.line_spacing = Pt(PT_LINE)
+    set_widow_off(paragraph)
+
+    p_pr = paragraph._p.get_or_add_pPr()
     snap = p_pr.find(qn("w:snapToGrid"))
     if snap is None:
         snap = OxmlElement("w:snapToGrid")
@@ -242,10 +277,13 @@ def set_paragraph_format(paragraph, role: str) -> None:
         for attr in list(indent.attrib):
             indent.attrib.pop(attr)
     elif role == "落款":
-        paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-        jc.set(qn("w:val"), "right")
+        paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        jc.set(qn("w:val"), "left")
         for attr in list(indent.attrib):
             indent.attrib.pop(attr)
+        indent.set(qn("w:left"), str(signature_left))
+        indent.set(qn("w:firstLine"), "0")
+        indent.set(qn("w:firstLineChars"), "0")
     elif role == "正文":
         paragraph.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
         jc.set(qn("w:val"), "both")
@@ -258,23 +296,62 @@ def set_paragraph_format(paragraph, role: str) -> None:
         indent.set(qn("w:firstLine"), "0")
 
 
-def add_paragraph(document: Document, role: str, text: str) -> None:
+def signature_left_twips(lines: list[str]) -> int:
+    usable = Mm(210 - 28 - 26).twips
+
+    def width_em(text: str) -> float:
+        return sum(
+            0 if unicodedata.category(char) in {"Mn", "Me", "Cf"} else 4 if char == "\t" else 1
+            for char in text.strip()
+        )
+
+    longest = max((width_em(line) for line in lines if line.strip()), default=0)
+    headroom = max(2.0, longest * 0.15)
+    width = math.ceil((longest + headroom) * PT_BODY * 20)
+    return max(0, int(usable - width))
+
+
+def ensure_styles(document: Document) -> None:
+    for role, style_name in ROLE_STYLE.items():
+        try:
+            style = document.styles[style_name]
+        except KeyError:
+            style = document.styles.add_style(style_name, WD_STYLE_TYPE.PARAGRAPH)
+        east = ROLE_FONT[role]
+        size = PT_TITLE if role == "主标题" else PT_BODY
+        style.font.name = FONT_LATIN
+        style.font.size = Pt(size)
+        style.font.bold = False
+        style.font.color.rgb = RGBColor(0, 0, 0)
+        r_pr = style.element.get_or_add_rPr()
+        r_fonts = r_pr.find(qn("w:rFonts"))
+        if r_fonts is None:
+            r_fonts = OxmlElement("w:rFonts")
+            r_pr.insert(0, r_fonts)
+        r_fonts.set(qn("w:eastAsia"), east)
+        r_fonts.set(qn("w:ascii"), FONT_LATIN)
+        r_fonts.set(qn("w:hAnsi"), FONT_LATIN)
+        r_fonts.set(qn("w:cs"), FONT_LATIN)
+        style.paragraph_format.space_before = Pt(0)
+        style.paragraph_format.space_after = Pt(0)
+        style.paragraph_format.line_spacing_rule = WD_LINE_SPACING.EXACTLY
+        style.paragraph_format.line_spacing = Pt(PT_LINE)
+        style.paragraph_format.widow_control = False
+
+
+def add_paragraph(document: Document, role: str, text: str, signature_left: int = 0):
     p = document.add_paragraph()
-    set_paragraph_format(p, role)
-    if role == "主标题":
-        add_mixed_runs(p, text, FONT_TITLE, PT_TITLE, bold=False)
-    elif role == "一级":
-        add_mixed_runs(p, text, FONT_H1, PT_BODY, bold=False)
-    elif role == "二级":
-        add_mixed_runs(p, text, FONT_H2, PT_BODY, bold=False)
-    else:
-        add_mixed_runs(p, text, FONT_BODY, PT_BODY, bold=False)
+    p.style = ROLE_STYLE[role]
+    set_paragraph_geometry(p, role, signature_left)
+    east = ROLE_FONT[role]
+    size = PT_TITLE if role == "主标题" else PT_BODY
+    add_mixed_runs(p, text, east, size)
+    return p
 
 
 def configure_section(section) -> None:
     section.page_width = Mm(210)
     section.page_height = Mm(297)
-    section.orientation = section.orientation
     section.top_margin = Mm(37)
     section.bottom_margin = Mm(35)
     section.left_margin = Mm(28)
@@ -309,6 +386,9 @@ def _page_run_rpr() -> OxmlElement:
     color = OxmlElement("w:color")
     color.set(qn("w:val"), "000000")
     r_pr.append(color)
+    bold = OxmlElement("w:b")
+    bold.set(qn("w:val"), "0")
+    r_pr.append(bold)
     for tag in ("w:sz", "w:szCs"):
         node = OxmlElement(tag)
         node.set(qn("w:val"), str(int(PT_PAGE * 2)))
@@ -317,43 +397,60 @@ def _page_run_rpr() -> OxmlElement:
 
 
 def add_page_number_paragraph(paragraph, align: str) -> None:
-    paragraph.alignment = (
-        WD_ALIGN_PARAGRAPH.RIGHT if align == "right" else WD_ALIGN_PARAGRAPH.LEFT
-    )
+    paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
     pf = paragraph.paragraph_format
     pf.space_before = Pt(0)
     pf.space_after = Pt(0)
+    pf.first_line_indent = None
+    set_widow_off(paragraph)
+    p_pr_align = paragraph._p.get_or_add_pPr()
+    jc = p_pr_align.find(qn("w:jc"))
+    if jc is None:
+        jc = OxmlElement("w:jc")
+        p_pr_align.append(jc)
+    jc.set(qn("w:val"), "center")
+
     p_pr = paragraph._p.get_or_add_pPr()
-    widow = OxmlElement("w:widowControl")
-    widow.set(qn("w:val"), "0")
-    p_pr.append(widow)
+    existing = p_pr.find(qn("w:rPr"))
+    if existing is not None:
+        p_pr.remove(existing)
+    p_pr.append(_page_run_rpr())
 
     def add_text(text: str) -> None:
         run = paragraph.add_run(text)
         run._element.append(_page_run_rpr())
+        set_run_fonts(run, FONT_PAGE, FONT_PAGE, PT_PAGE)
 
-    add_text("\u2014 ")
-    run1 = paragraph.add_run()
-    fld1 = OxmlElement("w:fldChar")
-    fld1.set(qn("w:fldCharType"), "begin")
-    run1._element.append(fld1)
-    run1._element.append(_page_run_rpr())
-    run2 = paragraph.add_run()
+    add_text("— ")
+    begin_run = paragraph.add_run()
+    begin = OxmlElement("w:fldChar")
+    begin.set(qn("w:fldCharType"), "begin")
+    begin.set(qn("w:dirty"), "true")
+    begin_run._r.append(begin)
+    begin_run._r.append(_page_run_rpr())
+    instr_run = paragraph.add_run()
     instr = OxmlElement("w:instrText")
     instr.set(qn("xml:space"), "preserve")
-    instr.text = " PAGE "
-    run2._element.append(instr)
-    run2._element.append(_page_run_rpr())
-    run3 = paragraph.add_run()
-    fld2 = OxmlElement("w:fldChar")
-    fld2.set(qn("w:fldCharType"), "end")
-    run3._element.append(fld2)
-    run3._element.append(_page_run_rpr())
-    add_text(" \u2014")
+    instr.text = " PAGE \\* CHARFORMAT "
+    instr_run._r.append(instr)
+    instr_run._r.append(_page_run_rpr())
+    sep_run = paragraph.add_run()
+    sep = OxmlElement("w:fldChar")
+    sep.set(qn("w:fldCharType"), "separate")
+    sep_run._r.append(sep)
+    sep_run._r.append(_page_run_rpr())
+    result = paragraph.add_run("1")
+    set_run_fonts(result, FONT_PAGE, FONT_PAGE, PT_PAGE)
+    end_run = paragraph.add_run()
+    end = OxmlElement("w:fldChar")
+    end.set(qn("w:fldCharType"), "end")
+    end_run._r.append(end)
+    end_run._r.append(_page_run_rpr())
+    add_text(" —")
 
 
 def configure_footers(section) -> None:
-    for footer, align in ((section.footer, "right"), (section.even_page_footer, "left")):
+    for footer, align in ((section.footer, "center"), (section.even_page_footer, "center")):
         footer.is_linked_to_previous = False
         if footer.paragraphs:
             p = footer.paragraphs[0]
@@ -363,19 +460,14 @@ def configure_footers(section) -> None:
         add_page_number_paragraph(p, align)
         for extra in footer.paragraphs[1:]:
             extra._element.getparent().remove(extra._element)
-    header = section.header
-    header.is_linked_to_previous = False
-    for p in header.paragraphs:
-        p.text = ""
-    even_header = section.even_page_header
-    even_header.is_linked_to_previous = False
-    for p in even_header.paragraphs:
-        p.text = ""
+    for header in (section.header, section.even_page_header):
+        header.is_linked_to_previous = False
+        for p in header.paragraphs:
+            p.text = ""
 
 
 def apply_document_defaults(document: Document) -> None:
-    styles = document.styles
-    normal = styles["Normal"]
+    normal = document.styles["Normal"]
     normal.font.name = FONT_BODY
     normal.font.size = Pt(PT_BODY)
     r_pr = normal.element.get_or_add_rPr()
@@ -392,6 +484,7 @@ def apply_document_defaults(document: Document) -> None:
 def build_document(blocks: list[tuple[str, str]]) -> Document:
     document = Document()
     apply_document_defaults(document)
+    ensure_styles(document)
     section = document.sections[0]
     configure_section(section)
     configure_footers(section)
@@ -400,6 +493,9 @@ def build_document(blocks: list[tuple[str, str]]) -> Document:
     for child in list(body):
         if child.tag == qn("w:p"):
             body.remove(child)
+
+    sig_lines = [text for role, text in blocks if role == "落款" and text.strip()]
+    sig_left = signature_left_twips(sig_lines)
 
     title_seen = False
     signature_gap = False
@@ -412,7 +508,7 @@ def build_document(blocks: list[tuple[str, str]]) -> Document:
         if role == "落款" and not signature_gap:
             add_paragraph(document, "正文", "")
             signature_gap = True
-        add_paragraph(document, role, text)
+        add_paragraph(document, role, text, sig_left if role == "落款" else 0)
     if not title_seen and blocks:
         pass
     return document
@@ -437,17 +533,23 @@ def classify_docx(path: Path) -> list[tuple[str, str]]:
         text = strip_md(p.text)
         if not text:
             continue
-        style = (p.style.name or "").lower() if p.style is not None else ""
-        if "title" in style:
+        style = (p.style.name or "") if p.style is not None else ""
+        style_l = style.lower()
+        if style in ROLE_STYLE.values():
+            role = next(role for role, name in ROLE_STYLE.items() if name == style)
+            blocks.append((role, text))
+        elif "title" in style_l or style == "Title":
             blocks.append(("主标题", text))
-        elif style in {"heading 1", "heading1"}:
-            blocks.append(("一级", text if H1_PREFIX.match(text) else text))
-        elif style in {"heading 2", "heading2"}:
+        elif style_l in {"heading 1", "heading1"} or H1_PREFIX.match(text):
+            blocks.append(("一级", text))
+        elif style_l in {"heading 2", "heading2"} or H2_PREFIX.match(text):
             blocks.append(("二级", text))
-        elif style in {"heading 3", "heading3"}:
-            blocks.append(("三级", text))
-        elif style in {"heading 4", "heading4"}:
+        elif style_l in {"heading 4", "heading4"} or H4_PREFIX.match(text):
             blocks.append(("四级", text))
+        elif style_l in {"heading 3", "heading3"}:
+            blocks.append(("三级", text))
+        elif DATE_RE.match(text) or re.fullmatch(r"[—–-]{1,2}.{1,20}", text) or OFFICE_RE.search(text):
+            blocks.append(("落款", text))
         else:
             blocks.append(("正文", text))
     rebuilt: list[tuple[str, str]] = []
@@ -500,6 +602,18 @@ def main() -> int:
     document = build_document(blocks)
     document.save(str(dest))
     print(f"DOCX\t{dest}")
+
+    validator = Path(__file__).resolve().parent / "validate_gongwen.py"
+    if validator.exists():
+        from validate_gongwen import validate
+
+        errors = validate(dest)
+        if errors:
+            print("VALIDATE\tFAIL")
+            for item in errors:
+                print(f"ERROR\t{item}")
+            return 1
+        print("VALIDATE\tOK")
     return 0
 
 
