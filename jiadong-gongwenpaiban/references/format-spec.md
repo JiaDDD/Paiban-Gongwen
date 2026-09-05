@@ -23,6 +23,7 @@ Alignment
 - 一级至四级标题: left, first-line indent 2 Chinese characters
 - 正文: justify, first-line indent 2 Chinese characters
 - 落款: right-side block on the last page
+- 页码: center in the footer
 
 Line spacing
 
@@ -45,7 +46,7 @@ Line spacing
 - Footer from edge: 2.50 cm
 - Different odd and even headers/footers: yes (双面打印1)
 - First page different: no
-- Page number position: 页脚外侧
+- Page number position: 页脚居中
 - Page number style: `— 1 —`, `— 2 —`, …
 - Page number font: 宋体 4号
 
