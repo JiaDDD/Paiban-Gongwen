@@ -10,6 +10,7 @@ from pathlib import Path
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml.ns import qn
+from docx.shared import Mm, Pt
 
 PT_TITLE = 22.0
 PT_BODY = 16.0
@@ -186,6 +187,8 @@ def check_page_numbers(document: Document, errors: list[str]) -> None:
             xml = paragraph._p.xml
             if "PAGE" in xml:
                 has_page = True
+            if paragraph.alignment != WD_ALIGN_PARAGRAPH.CENTER:
+                errors.append(f"{name} 页码应居中")
             for run in paragraph.runs:
                 r_pr = run._element.rPr
                 if r_pr is None or r_pr.rFonts is None:
@@ -197,8 +200,8 @@ def check_page_numbers(document: Document, errors: list[str]) -> None:
         if not has_page:
             errors.append(f"{name} 缺少 PAGE 域")
         joined = "".join(texts)
-        if "\u2014" not in joined:
-            errors.append(f"{name} 页码装饰应为 \u2014 n \u2014")
+        if "—" not in joined:
+            errors.append(f"{name} 页码装饰应为 — n —")
 
 
 def validate(path: Path) -> list[str]:
@@ -213,6 +216,7 @@ def validate(path: Path) -> list[str]:
             check_paragraph(paragraph, index, errors)
     if managed == 0:
         errors.append("未找到 GW 命名样式段落，无法确认规格已套用")
+    # de-duplicate while keeping order
     seen: set[str] = set()
     unique: list[str] = []
     for item in errors:
