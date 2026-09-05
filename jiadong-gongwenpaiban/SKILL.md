@@ -1,9 +1,9 @@
 ---
 name: jiadong-gongwenpaiban
-description: 由 JiaD 创建的公文排版 Skill。粘贴 AI 回复或网页链接，或上传 Word、TXT、Markdown，即可自动生成公文规格的 Word 与 PDF，享受吧！
+description: 由 JiaD 创建的公文排版 Skill。粘贴 AI 回复或网页链接，或上传 Word、TXT、Markdown，即可自动生成公文规格的 Word，享受吧！
 metadata:
   type: workflow
-  version: "1.1"
+  version: "1.2"
   spec: user-wps-screenshot-2026-09-04
 ---
 
@@ -16,7 +16,7 @@ Read [references/format-spec.md](references/format-spec.md) before changing any 
 ## Scope
 
 - Input: pasted AI answers, `http(s)` URLs, `.docx`, Markdown, or plain text.
-- Output: a new `.docx` and a matching `.pdf` with the same stem. Deliver both.
+- Output: a new `.docx` only. Do not export, generate, or deliver a `.pdf`. If the user wants a PDF, tell them to export it from WPS or Word on a machine that has the official fonts.
 - Canonical intermediate form is ATX `#`–`#####` plus official numbering. Prefer that form. Fall back to meaning when the source is prose.
 - Refuse `.doc`, `.docm`, encrypted files, and files with unresolved tracked changes or comments. Ask for a clean `.docx` or paste the text.
 - Never overwrite the source file. Write `<stem>_公文排版.docx`. If no stem exists, use the title or `公文排版.docx`. If that name exists, append `-2`, `-3`, and so on.
@@ -40,7 +40,7 @@ Read [references/format-spec.md](references/format-spec.md) before changing any 
 3. Detect input type. For a URL, fetch the article body first. Classify with [references/structure-recognition.md](references/structure-recognition.md). Intermediate ATX plus official numbering wins when present. Otherwise recover structure from meaning. Map every block onto 主标题 / 一级 / 二级 / 三级 / 四级 / 正文 / 落款 only. Do not expand, shrink, or polish the wording.
 4. If a short line functions as a heading and lacks an official prefix, add `一、` `（一）` `1.` or `（1）` for the chosen level and restart child counters after a parent heading. Write the normalized blocks if needed, then run `scripts/format_gongwen.py`. Print `role<TAB>text`. If several roles are uncertain, prefer 正文 or show the plan; do not stop for confirmation on an otherwise clear document.
 5. If `python-docx` is missing, stop and report it. Do not install packages silently.
-6. After the `.docx` is written, export PDF with the same stem via `scripts/format_gongwen.py` (LibreOffice `soffice --headless --convert-to pdf`). If conversion fails, still deliver the Word file and report the PDF error. A sandbox PDF may substitute fonts; say so. Report both paths and the page metrics.
+6. After the `.docx` is written, stop. Do not call LibreOffice, `soffice`, or any PDF converter. Deliver only the Word path. Do not report PDF metrics.
 
 ## Layout rules the script must keep
 
@@ -74,4 +74,4 @@ Write the official font names into the document. Also set East-Asian fallback hi
 
 ## After output
 
-Do not claim visual proof unless a renderer produced page images. If only the `.docx` exists, report structural application of the spec, not printed appearance.
+Deliver the `.docx` only. Do not attach or render a PDF. Do not claim visual proof unless a renderer produced page images. Report structural application of the spec, not printed appearance. If asked how to obtain a PDF, say to open the Word file in WPS or Word and export there so the named official fonts can embed.

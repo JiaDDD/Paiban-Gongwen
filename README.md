@@ -15,7 +15,7 @@
 选中并附上来源后自动进行公文排版。
 
 - 可输入：粘贴的 AI 回复、网页链接、Word、TXT、Markdown
-- 同时交出公文规格的 Word 与 PDF
+- 只交出公文规格的 Word，不生成 PDF
 - 不改写正文；中间稿优先，散文则按文意恢复结构
 
 建议先用 `jiadong-paiban-prompt` 写稿，再把中间稿交给 `jiadong-gongwenpaiban` 排版。
@@ -52,6 +52,6 @@
 ## 装好之后
 
 1. 选中 `jiadong-paiban-prompt`，发题目或素材，得到中间稿。
-2. 选中 `jiadong-gongwenpaiban`，把中间稿或链接、Word、TXT、Markdown 发过去，得到 Word 与 PDF。
+2. 选中 `jiadong-gongwenpaiban`，把中间稿或链接、Word、TXT、Markdown 发过去，得到 Word。若需要 PDF，在已安装公文字体的 WPS 或 Word 中自行导出。
 
 许可：MIT
